@@ -1,0 +1,46 @@
+import pandas as pd
+import csv
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+import pickle
+import re
+def clean_text(text):
+    text = re.sub(r'[^\x00-\x7F]+', '', text)  # Remove non-ASCII characters
+    text = text.replace('\t', '')  # Remove tabs (TSV delimiter)
+    return text
+input_file_path = '/content/drive/MyDrive/Restaurant_Reviews.tsv (1)'
+output_file_path = 'cleaned_dataset.tsv'
+with open(input_file_path, 'r', newline='') as input_file, open(output_file_path, 'w', newline='') as output_file:
+    tsv_reader = csv.reader(input_file, delimiter='\t')  # Specify tab ('\t') as the delimiter
+    tsv_writer = csv.writer(output_file, delimiter='\t')  # Specify tab ('\t') as the delimiter
+    for row in tsv_reader:
+        cleaned_row = [clean_text(cell) for cell in row]
+        tsv_writer.writerow(cleaned_row)
+data = pd.read_csv(output_file_path, delimiter='\t')
+reviews = data['Review']
+labels = data['Liked']
+X_train, X_test, y_train, y_test = train_test_split(reviews, labels, test_size=0.2, random_state=42)
+tfidf_vectorizer = TfidfVectorizer(max_features=1000)
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+X_test_tfidf = tfidf_vectorizer.transform(X_test)
+knn_classifier = KNeighborsClassifier(n_neighbors=5)
+knn_classifier.fit(X_train_tfidf, y_train)
+y_pred = knn_classifier.predict(X_test_tfidf)
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+with open('sentiment_model.pkl', 'wb') as model_file:
+    pickle.dump(knn_classifier, model_file)
+    pickle.dump(tfidf_vectorizer, model_file)
+def predict_sentiment(new_reviews):
+    with open('sentiment_model.pkl', 'rb') as model_file:
+        loaded_classifier = pickle.load(model_file)
+        loaded_vectorizer = pickle.load(model_file)
+    new_reviews_tfidf = loaded_vectorizer.transform(new_reviews)
+    predictions = loaded_classifier.predict(new_reviews_tfidf)
+    return predictions
+new_reviews = ["I loved the food!", "Terrible service."]
+predictions = predict_sentiment(new_reviews)
+for review, sentiment in zip(new_reviews, predictions):
+    print(f"Review: '{review}' | Sentiment: {'Positive' if sentiment == 1 else 'Negative'}")
