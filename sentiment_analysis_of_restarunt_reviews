@@ -10,7 +10,7 @@ def clean_text(text):
     text = re.sub(r'[^\x00-\x7F]+', '', text)  # Remove non-ASCII characters
     text = text.replace('\t', '')  # Remove tabs (TSV delimiter)
     return text
-input_file_path = '/content/drive/MyDrive/Restaurant_Reviews.tsv (1)'
+input_file_path = '/workspaces/demo/Restaurant_Reviews.tsv'
 output_file_path = 'cleaned_dataset.tsv'
 with open(input_file_path, 'r', newline='') as input_file, open(output_file_path, 'w', newline='') as output_file:
     tsv_reader = csv.reader(input_file, delimiter='\t')  # Specify tab ('\t') as the delimiter
