@@ -1,0 +1,53 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Load the cleaned TSV dataset with correct column names
+data = pd.read_csv(output_file_path, delimiter='\t')  # Specify tab ('\t') as the delimiter
+
+# Split data into features (reviews) and labels (1 for positive, 0 for negative)
+reviews = data['Review']  # Update with the correct column name
+labels = data['Liked']  # Update with the correct column name
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(reviews, labels, test_size=0.2, random_state=42)
+
+# Text vectorization using TF-IDF
+tfidf_vectorizer = TfidfVectorizer(max_features=1000)
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+X_test_tfidf = tfidf_vectorizer.transform(X_test)
+
+# Hyperparameter tuning using GridSearchCV
+param_grid = {
+    'n_neighbors': [3, 5, 7, 9],  # Adjust the list of neighbors to test
+    'weights': ['uniform', 'distance'],
+    'metric': ['euclidean', 'manhattan']
+}
+
+knn_classifier = KNeighborsClassifier()
+grid_search = GridSearchCV(knn_classifier, param_grid, cv=5, n_jobs=-1)
+grid_search.fit(X_train_tfidf, y_train)
+
+# Get the best hyperparameters from the grid search
+best_params = grid_search.best_params_
+best_knn_classifier = grid_search.best_estimator_
+
+print("Best Hyperparameters:")
+print(best_params)
+
+# Evaluate the model on the testing data
+y_pred = best_knn_classifier.predict(X_test_tfidf)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy * 100:.2f}%')
+
+# Generate a classification report
+report = classification_report(y_test, y_pred, target_names=['Negative', 'Positive'])
+print("Classification Report:\n", report)
+
+# Generate a confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:\n", conf_matrix)
